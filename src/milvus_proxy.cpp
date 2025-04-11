@@ -45,6 +45,7 @@
 #include "function.h"
 #include "bm25_stat.h"
 #include <cmath>
+#include "nlohmann/json.hpp"
 namespace milvus::local {
 
 MilvusProxy::MilvusProxy(const char* work_dir) : milvus_local_(work_dir) {
@@ -276,8 +277,6 @@ MilvusProxy::Search(const ::milvus::proto::milvus::SearchRequest* r,
 
         auto runner = CreateRunner(schema);
         auto cont = runner->SearchConvert(ph->values(0));
-        std::cout << *(uint32_t*)(cont.c_str()) << " "
-                  << *(float*)(cont.c_str() + 4) << std::endl;
         auto pos = cont.data();
         auto end = cont.data() + cont.size();
         for (; pos < end; pos += 8) {
@@ -289,18 +288,34 @@ MilvusProxy::Search(const ::milvus::proto::milvus::SearchRequest* r,
                                    (float(nq) + 0.5));
         }
         ph->set_type(milvus::proto::common::PlaceholderType::SparseFloatVector);
-        std::cout << *(uint32_t*)(cont.c_str()) << " "
-                  << *(float*)(cont.c_str() + 4) << std::endl;
-
         ph->clear_values();
         *ph->add_values() = cont;
         const_cast<milvus::proto::milvus::SearchRequest*>(r)
             ->set_placeholder_group(ph_group->SerializeAsString());
-
-        std::cout << coll_stat.token_num << " " << coll_stat.rows_num
-                  << std::endl;
+        bool is_params_ready = false;
+        for (int i = 0; i < r->search_params_size(); ++i) {
+            auto params = const_cast<milvus::proto::milvus::SearchRequest*>(r)
+                              ->mutable_search_params(i);
+            if (params->key() == "params") {
+                auto j = nlohmann::json::parse(params->value());
+                j["bm25_avgdl"] =
+                    float(coll_stat.token_num) / float(coll_stat.rows_num);
+                *params->mutable_value() = j.dump();
+                is_params_ready = true;
+            }
+        }
+        if (!is_params_ready) {
+            auto params = const_cast<milvus::proto::milvus::SearchRequest*>(r)
+                              ->add_search_params();
+            params->set_key("params");
+            nlohmann::json j;
+            j["bm25_avgdl"] =
+                float(coll_stat.token_num) / float(coll_stat.rows_num);
+            params->set_value(j.dump());
+        }
     }
     std::cout << r->DebugString() << std::endl;
+
     CHECK_STATUS(milvus_local_.LoadCollection(r->collection_name()), "");
 
     // get index

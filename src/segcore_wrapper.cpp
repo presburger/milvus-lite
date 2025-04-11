@@ -107,8 +107,10 @@ SegcoreWrapper::SetCollectionInfo(const std::string& collection_name,
     assert(collection_ == nullptr);
     auto new_collection_info = NewCollectionInfo(collection_info);
     try {
-        collection_ = ::NewCollection(new_collection_info.c_str(),
-                                      new_collection_info.size());
+        CHECK_STATUS(Status(::NewCollection(new_collection_info.c_str(),
+                                            new_collection_info.size(),
+                                            &collection_)),
+                     "New collection failed");
         // set index info if has
         if (!index_meta.empty()) {
             ::SetIndexMeta(collection_, index_meta.c_str(), index_meta.size());
@@ -201,7 +203,8 @@ SegcoreWrapper::Retrieve(const std::string& plan, RetrieveResult* result) {
                                    retrieve_plan.plan_,
                                    GetTimestamp(),
                                    DEFAULT_MAX_OUTPUT_SIZE,
-                                   false);
+                                   false,
+                                   2);
         std::mutex mu;
         mu.lock();
         future_register_ready_callback(
@@ -242,7 +245,7 @@ SegcoreWrapper::Search(const std::string& plan,
             "Parse placeholder group failed");
         SearchResultWrapper search_result;
         auto job = ::AsyncSearch(
-            {}, segment_, search_plan.plan_, group.group_, GetTimestamp());
+            {}, segment_, search_plan.plan_, group.group_, GetTimestamp(), 2);
         std::mutex mu;
         mu.lock();
         future_register_ready_callback(

@@ -30,7 +30,7 @@ namespace milvus::local {
 class SegcoreWrapper final : NonCopyableNonMovable {
  public:
     SegcoreWrapper() : collection_(nullptr), cur_id_(0), segment_(nullptr) {
-        SegcoreSetEnableTempSegmentIndex(true);
+        SegcoreSetEnableInterminSegmentIndex(true);
         InitLocalChunkManagerSingleton("/tmp/mydata");
         CMmapConfig conf;
         conf.growing_enable_mmap = false;

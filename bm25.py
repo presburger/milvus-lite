@@ -63,8 +63,10 @@ insert_result = milvus_client.insert(collection_name, rows, progress_bar=True)
 print(fmt.format("Inserting entities done"))
 print(insert_result)
 
-texts_to_search = ["zilliz"]
-search_params = {"metric_type": "BM25", "params": {"bm25_avgdl": 2.0}}
+texts_to_search = ["hello"]
+# search_params = {"metric_type": "BM25", "params": {"bm25_avgdl": 10.0}}
+search_params = {"metric_type": "BM25"}
+
 print(fmt.format(f"Start search with retrieve several fields."))
 result = milvus_client.search(
     collection_name,

@@ -1,1 +1,1 @@
-../../thirdparty/milvus/internal/proto/cgo_msg.proto
+../../thirdparty/milvus/pkg/proto/cgo_msg.proto
